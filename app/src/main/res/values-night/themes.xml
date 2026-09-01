@@ -1,0 +1,9 @@
+<resources>
+    <style name="Theme.SubscriptionTracker" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#101512</item>
+        <item name="android:navigationBarColor">#171D19</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>

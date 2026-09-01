@@ -1,6 +1,7 @@
 package com.subscriptiontracker
 
 import android.Manifest
+import android.content.Context
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -10,12 +11,17 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.subscriptiontracker.platform.i18n.AppLanguageManager
 import com.subscriptiontracker.presentation.CoreViewModel
 import com.subscriptiontracker.presentation.ScheduleRefresh
 import com.subscriptiontracker.ui.screens.CoreApp
 import com.subscriptiontracker.ui.theme.SubscriptionTrackerTheme
 
 class MainActivity : ComponentActivity() {
+    override fun attachBaseContext(newBase: Context) {
+        super.attachBaseContext(AppLanguageManager.wrap(newBase))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val container = application as SubscriptionTrackerApplication
@@ -52,6 +58,10 @@ class MainActivity : ComponentActivity() {
                     onOpenAppSettings = { startActivity(container.notificationSettingsIntentFactory.create()) },
                     onExport = { exportLauncher.launch("subscription-tracker-backup.json") },
                     onImport = { importLauncher.launch(arrayOf("application/json", "text/json", "text/plain")) },
+                    onSetLanguage = { tag ->
+                        AppLanguageManager.set(this@MainActivity, tag)
+                        this@MainActivity.recreate()
+                    },
                 )
             }
         }

@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">订阅追踪</string>
+
+    <string name="ledger">账本</string>
+    <string name="settings">设置</string>
+    <string name="overview">概览</string>
+    <string name="subscriptions">订阅</string>
+    <string name="insights">统计</string>
+    <string name="loading">加载中</string>
+    <string name="ok">确定</string>
+    <string name="cancel">取消</string>
+    <string name="save">保存</string>
+    <string name="delete">删除</string>
+    <string name="keep">保留</string>
+    <string name="all">全部</string>
+    <string name="none">无</string>
+    <string name="back">返回</string>
+    <string name="edit">编辑</string>
+
+    <string name="overview_subtitle">当前承诺，未进行汇率换算</string>
+    <string name="no_subscriptions_yet">暂无订阅</string>
+    <string name="no_subscriptions_prompt">在“订阅”页面添加一项以开始追踪支出与事件。</string>
+    <string name="active">生效中</string>
+    <string name="this_month">本月</string>
+    <string name="next_30_days">未来 30 天</string>
+    <string name="annualized">年化</string>
+    <string name="upcoming_events">即将到来的事件</string>
+    <string name="nothing_due_30_days">未来 30 天内没有到期项</string>
+    <string name="upcoming_events_hint">已启用的计费、试用、到期、配额与自定义事件将显示在这里。</string>
+
+    <string name="search_placeholder">搜索名称、提供商、分类、备注</string>
+    <string name="search_subscriptions">搜索订阅</string>
+    <string name="activity_label">状态</string>
+    <string name="due_soon">即将到期</string>
+    <string name="category_label">分类</string>
+    <string name="currency_label">货币</string>
+    <string name="sort_label">排序</string>
+    <string name="add_subscription">添加订阅</string>
+    <string name="no_matching_subscriptions">没有匹配的订阅</string>
+    <string name="no_matching_prompt">更改筛选条件或添加订阅。</string>
+
+    <string name="insights_subtitle">各货币金额保持独立</string>
+    <string name="annual_recurring_spend">年化循环支出</string>
+    <string name="no_recurring_spend">没有循环支出</string>
+    <string name="no_recurring_spend_hint">已启用自动续费且带有计费周期的订阅将显示在这里。</string>
+    <string name="current_month_by_category">按分类的本月支出</string>
+    <string name="listed_recurring_prices">列出的循环价格</string>
+
+    <string name="settings_notifications">通知</string>
+    <string name="notifications_allowed">已允许。事件提醒可以正常发送。</string>
+    <string name="notifications_not_required">此 Android 版本不需要该权限。</string>
+    <string name="notifications_denied">已拒绝。提醒仍会安排，但需允许后才能弹出通知。</string>
+    <string name="request_permission">请求权限</string>
+    <string name="open_app_settings">打开应用设置</string>
+    <string name="local_defaults">本地默认值</string>
+    <string name="defaults_summary">货币：USD · 提醒：前一天 09:00</string>
+    <string name="defaults_not_persisted">仅作为建议值显示，这些值不会被持久化。</string>
+    <string name="backup">备份</string>
+    <string name="backup_summary">通过 Android 文档选择器导出或替换所有本地记录。不使用网络。</string>
+    <string name="export">导出</string>
+    <string name="import_replace">导入 / 替换</string>
+    <string name="language">语言</string>
+    <string name="language_summary">选择应用内显示语言。切换后将重新启动界面。</string>
+    <string name="english">English</string>
+    <string name="chinese">中文</string>
+
+    <string name="cancel_at_expiry">到期取消</string>
+    <string name="archive">归档</string>
+    <string name="status">状态</string>
+    <string name="recurring_events">循环事件</string>
+    <string name="add_event">添加事件</string>
+    <string name="no_events">暂无事件</string>
+    <string name="no_events_hint">添加计费、到期、试用、配额重置或自定义事件。</string>
+    <string name="quotas">配额</string>
+    <string name="add_quota">添加配额</string>
+    <string name="no_quotas">暂无配额</string>
+    <string name="no_quotas_hint">手动追踪套餐限制。</string>
+    <string name="unlimited">无限</string>
+
+    <string name="delete_subscription_title">删除订阅？</string>
+    <string name="delete_subscription_body">这将永久删除该订阅及其事件和配额。</string>
+    <string name="cancel_period_title">在周期结束时取消？</string>
+    <string name="cancel_period_body">自动续费将关闭，状态变为待到期。如有当前到期日期，将使用当前值。</string>
+    <string name="cancel_subscription">取消订阅</string>
+    <string name="replace_all_data_title">替换所有本地数据？</string>
+    <string name="replace_all_data_body_format">已验证备份：%1$s。替换将先删除所有当前订阅、事件和配额，再恢复该文件。</string>
+    <string name="replace_and_restore">替换并恢复</string>
+
+    <string name="add_subscription_title">添加订阅</string>
+    <string name="edit_subscription_title">编辑订阅</string>
+    <string name="add_event_title">添加事件</string>
+    <string name="edit_event_title">编辑事件</string>
+    <string name="add_quota_title">添加配额</string>
+    <string name="edit_quota_title">编辑配额</string>
+
+    <string name="field_name">名称 *</string>
+    <string name="field_provider">提供商 *</string>
+    <string name="field_category">分类 *</string>
+    <string name="field_price">价格 *</string>
+    <string name="field_iso_currency">ISO 货币 *</string>
+    <string name="field_billing_unit">计费单位</string>
+    <string name="field_every_n">每 N</string>
+    <string name="field_auto_renew">自动续费</string>
+    <string name="field_start_date">开始日期 * (YYYY-MM-DD)</string>
+    <string name="field_expiration_date">到期日期（可选）</string>
+    <string name="field_trial_end_date">试用结束日期（可选）</string>
+    <string name="field_notes">备注</string>
+    <string name="field_title">标题 *</string>
+    <string name="field_type">类型</string>
+    <string name="field_logical_date">逻辑日期 * (YYYY-MM-DD)</string>
+    <string name="field_recurrence">循环</string>
+    <string name="field_unit">单位</string>
+    <string name="field_timezone">时区 *</string>
+    <string name="field_event_enabled">事件已启用</string>
+    <string name="field_reminder_enabled">提醒已启用</string>
+    <string name="field_days_before">提前天数</string>
+    <string name="field_time">时间 (HH:MM)</string>
+    <string name="field_quota_name">名称 *</string>
+    <string name="field_quota_unit">单位 *</string>
+    <string name="field_used">已用（可选）</string>
+    <string name="field_remaining">剩余（可选）</string>
+    <string name="field_limit">上限（可选）</string>
+    <string name="field_percentage">百分比（可选）</string>
+    <string name="field_reset_event">重置事件</string>
+
+    <string name="status_active">生效中</string>
+    <string name="status_cancelled_pending_expiry">待到期取消</string>
+    <string name="status_expired">已过期</string>
+    <string name="status_paused">已暂停</string>
+    <string name="status_archived">已归档</string>
+
+    <string name="event_type_billing">计费</string>
+    <string name="event_type_expiration">到期</string>
+    <string name="event_type_trial_end">试用结束</string>
+    <string name="event_type_quota_reset">配额重置</string>
+    <string name="event_type_custom">自定义</string>
+    <string name="event_type_price_change">价格变更</string>
+    <string name="event_type_promotion_end">促销结束</string>
+    <string name="event_type_contract_notice">合同通知</string>
+
+    <string name="one_time">一次性</string>
+    <string name="every_n_unit">每 %1$d %2$s</string>
+    <string name="unit_days">天</string>
+    <string name="unit_weeks">周</string>
+    <string name="unit_months">个月</string>
+    <string name="unit_years">年</string>
+
+    <string name="saved">已保存</string>
+    <string name="backup_exported">已导出备份</string>
+    <string name="backup_restored">已恢复备份；现有数据已被替换</string>
+    <string name="unable_to_load_data">无法加载数据</string>
+    <string name="operation_failed">操作失败</string>
+
+    <string name="notification_channel_name">订阅提醒</string>
+    <string name="notification_channel_description">即将到来的订阅事件提醒</string>
+    <string name="notification_default_title">订阅提醒</string>
+    <string name="notification_content_format">%1$s · %2$s</string>
+</resources>

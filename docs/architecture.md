@@ -32,7 +32,7 @@ The current single Android application module enforces package-level boundaries.
 
 ## 5. Frontend Architecture
 
-`MainActivity` owns Android activity-result launchers for notification permission and SAF documents, constructs `CoreViewModel` from the application container, and hosts `CoreApp`. Compose reads domain-backed presentation state only. The UI provides Overview, Subscriptions, Insights, Settings, detail, subscription/event/quota forms, confirmations, and responsive width constraints using the Precision Finance light palette.
+`MainActivity` owns Android activity-result launchers for notification permission and SAF documents, constructs `CoreViewModel` from the application container, and hosts `CoreApp`. Compose reads domain-backed presentation state only. The UI provides Overview, Subscriptions, Insights, Settings, detail, subscription/event/quota forms, confirmations, and responsive width constraints. The root `DESIGN.md` defines the Quiet Ledger visual system; `ui/theme/Theme.kt` maps its semantic roles to separately calibrated light and dark Material color schemes selected from the system theme, while Compose primitives standardize typography, shape, touch targets, navigation selection, and transform/color-only feedback.
 
 ## 6. Backend Architecture
 
@@ -44,7 +44,7 @@ Compose sends user intents to `CoreViewModel`. The ViewModel validates form text
 
 ## 8. Testing Strategy
 
-Local tests are in `app/src/test` and run with `gradlew.bat :app:testDebugUnitTest`. The current suite has 64 passing tests covering recurrence, lifecycle, spend, querying, reminder policy/reconciliation, backup validation/restore gating, presentation actions, and Room behavior under Robolectric. `gradlew.bat :app:lintDebug` and `gradlew.bat :app:assembleDebug` are release checks. WorkManager delivery, reboot broadcasts, notification permission UX, and SAF interaction still require a physical-device or emulator acceptance pass.
+Local tests are in `app/src/test` and run with `gradlew.bat :app:testDebugUnitTest`. The suite covers recurrence, lifecycle, spend, querying, reminder policy/reconciliation, backup validation/restore gating, presentation actions, Room behavior under Robolectric, theme selection, and WCAG AA contrast for core semantic color pairs. `gradlew.bat :app:lintDebug` and `gradlew.bat :app:assembleDebug` are release checks. WorkManager delivery, reboot broadcasts, notification permission UX, and SAF interaction still require a physical-device or emulator acceptance pass.
 
 ## 9. Development Conventions
 

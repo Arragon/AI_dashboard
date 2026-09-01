@@ -1,3 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Subscription Tracker</string>
+
+    <!-- Navigation and general -->
+    <string name="ledger">Ledger</string>
+    <string name="settings">Settings</string>
+    <string name="overview">Overview</string>
+    <string name="subscriptions">Subscriptions</string>
+    <string name="insights">Insights</string>
+    <string name="loading">Loading</string>
+    <string name="ok">OK</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="delete">Delete</string>
+    <string name="keep">Keep</string>
+    <string name="all">All</string>
+    <string name="none">None</string>
+    <string name="back">Back</string>
+    <string name="edit">Edit</string>
+
+    <!-- Overview -->
+    <string name="overview_subtitle">Current commitments without currency conversion</string>
+    <string name="no_subscriptions_yet">No subscriptions yet</string>
+    <string name="no_subscriptions_prompt">Add one from Subscriptions to begin tracking spend and events.</string>
+    <string name="active">Active</string>
+    <string name="this_month">This month</string>
+    <string name="next_30_days">Next 30 days</string>
+    <string name="annualized">Annualized</string>
+    <string name="upcoming_events">Upcoming events</string>
+    <string name="nothing_due_30_days">Nothing due in 30 days</string>
+    <string name="upcoming_events_hint">Enabled billing, trial, expiration, quota, and custom events appear here.</string>
+
+    <!-- Subscriptions list -->
+    <string name="search_placeholder">Search name, provider, category, notes</string>
+    <string name="search_subscriptions">Search subscriptions</string>
+    <string name="activity_label">Activity</string>
+    <string name="due_soon">Due soon</string>
+    <string name="category_label">Category</string>
+    <string name="currency_label">Currency</string>
+    <string name="sort_label">Sort</string>
+    <string name="add_subscription">Add subscription</string>
+    <string name="no_matching_subscriptions">No matching subscriptions</string>
+    <string name="no_matching_prompt">Change filters or add a subscription.</string>
+
+    <!-- Insights -->
+    <string name="insights_subtitle">Amounts remain separated by currency</string>
+    <string name="annual_recurring_spend">Annual recurring spend</string>
+    <string name="no_recurring_spend">No recurring spend</string>
+    <string name="no_recurring_spend_hint">Active auto-renewing subscriptions with billing intervals appear here.</string>
+    <string name="current_month_by_category">Current month by category</string>
+    <string name="listed_recurring_prices">Listed recurring prices</string>
+
+    <!-- Settings -->
+    <string name="settings_notifications">Notifications</string>
+    <string name="notifications_allowed">Allowed. Event reminders can be delivered.</string>
+    <string name="notifications_not_required">Permission is not required on this Android version.</string>
+    <string name="notifications_denied">Denied. Reminders are scheduled but cannot notify until allowed.</string>
+    <string name="request_permission">Request permission</string>
+    <string name="open_app_settings">Open app settings</string>
+    <string name="local_defaults">Local defaults</string>
+    <string name="defaults_summary">Currency: USD · Reminder: 1 day before at 09:00</string>
+    <string name="defaults_not_persisted">Shown as suggested defaults only; these values are not persisted.</string>
+    <string name="backup">Backup</string>
+    <string name="backup_summary">Export or replace all local records using Android’s document picker. No network is used.</string>
+    <string name="export">Export</string>
+    <string name="import_replace">Import / Replace</string>
+    <string name="language">Language</string>
+    <string name="language_summary">Choose the in-app display language. The app will restart.</string>
+    <string name="english">English</string>
+    <string name="chinese">中文</string>
+
+    <!-- Detail -->
+    <string name="cancel_at_expiry">Cancel at expiry</string>
+    <string name="archive">Archive</string>
+    <string name="status">Status</string>
+    <string name="recurring_events">Recurring events</string>
+    <string name="add_event">Add event</string>
+    <string name="no_events">No events</string>
+    <string name="no_events_hint">Add billing, expiration, trial, quota reset, or custom events.</string>
+    <string name="quotas">Quotas</string>
+    <string name="add_quota">Add quota</string>
+    <string name="no_quotas">No quotas</string>
+    <string name="no_quotas_hint">Track plan limits manually.</string>
+    <string name="unlimited">Unlimited</string>
+
+    <!-- Confirmations -->
+    <string name="delete_subscription_title">Delete subscription?</string>
+    <string name="delete_subscription_body">This permanently deletes the subscription and its events and quotas.</string>
+    <string name="cancel_period_title">Cancel at period end?</string>
+    <string name="cancel_period_body">Auto-renew will turn off and status becomes pending expiry. The current expiration date is used when available.</string>
+    <string name="cancel_subscription">Cancel subscription</string>
+    <string name="replace_all_data_title">Replace all local data?</string>
+    <string name="replace_all_data_body_format">Validated backup: %1$s. Replace removes all current subscriptions, events, and quotas before restoring this file.</string>
+    <string name="replace_and_restore">Replace and restore</string>
+
+    <!-- Dialog titles -->
+    <string name="add_subscription_title">Add subscription</string>
+    <string name="edit_subscription_title">Edit subscription</string>
+    <string name="add_event_title">Add event</string>
+    <string name="edit_event_title">Edit event</string>
+    <string name="add_quota_title">Add quota</string>
+    <string name="edit_quota_title">Edit quota</string>
+
+    <!-- Form fields -->
+    <string name="field_name">Name *</string>
+    <string name="field_provider">Provider *</string>
+    <string name="field_category">Category *</string>
+    <string name="field_price">Price *</string>
+    <string name="field_iso_currency">ISO currency *</string>
+    <string name="field_billing_unit">Billing unit</string>
+    <string name="field_every_n">Every N</string>
+    <string name="field_auto_renew">Auto-renew</string>
+    <string name="field_start_date">Start date * (YYYY-MM-DD)</string>
+    <string name="field_expiration_date">Expiration date (optional)</string>
+    <string name="field_trial_end_date">Trial end date (optional)</string>
+    <string name="field_notes">Notes</string>
+    <string name="field_title">Title *</string>
+    <string name="field_type">Type</string>
+    <string name="field_logical_date">Logical date * (YYYY-MM-DD)</string>
+    <string name="field_recurrence">Recurrence</string>
+    <string name="field_unit">Unit</string>
+    <string name="field_timezone">Timezone *</string>
+    <string name="field_event_enabled">Event enabled</string>
+    <string name="field_reminder_enabled">Reminder enabled</string>
+    <string name="field_days_before">Days before</string>
+    <string name="field_time">Time (HH:MM)</string>
+    <string name="field_quota_name">Name *</string>
+    <string name="field_quota_unit">Unit *</string>
+    <string name="field_used">Used (optional)</string>
+    <string name="field_remaining">Remaining (optional)</string>
+    <string name="field_limit">Limit (optional)</string>
+    <string name="field_percentage">Percentage (optional)</string>
+    <string name="field_reset_event">Reset event</string>
+
+    <!-- Status and event types -->
+    <string name="status_active">Active</string>
+    <string name="status_cancelled_pending_expiry">Cancelled pending expiry</string>
+    <string name="status_expired">Expired</string>
+    <string name="status_paused">Paused</string>
+    <string name="status_archived">Archived</string>
+
+    <string name="event_type_billing">Billing</string>
+    <string name="event_type_expiration">Expiration</string>
+    <string name="event_type_trial_end">Trial end</string>
+    <string name="event_type_quota_reset">Quota reset</string>
+    <string name="event_type_custom">Custom</string>
+    <string name="event_type_price_change">Price change</string>
+    <string name="event_type_promotion_end">Promotion end</string>
+    <string name="event_type_contract_notice">Contract notice</string>
+
+    <!-- Recurrence -->
+    <string name="one_time">One time</string>
+    <string name="every_n_unit">Every %1$d %2$s</string>
+    <string name="unit_days">days</string>
+    <string name="unit_weeks">weeks</string>
+    <string name="unit_months">months</string>
+    <string name="unit_years">years</string>
+
+    <!-- Messages from ViewModel mapping -->
+    <string name="saved">Saved</string>
+    <string name="backup_exported">Backup exported</string>
+    <string name="backup_restored">Backup restored; existing data was replaced</string>
+    <string name="unable_to_load_data">Unable to load data</string>
+    <string name="operation_failed">Operation failed</string>
+
+    <!-- Notifications -->
+    <string name="notification_channel_name">Subscription reminders</string>
+    <string name="notification_channel_description">Upcoming subscription event reminders</string>
+    <string name="notification_default_title">Subscription reminder</string>
+    <string name="notification_content_format">%1$s on %2$s</string>
 </resources>

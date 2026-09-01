@@ -9,6 +9,8 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.work.CoroutineWorker
 import androidx.work.Data
 import androidx.work.WorkerParameters
+import com.subscriptiontracker.R
+import com.subscriptiontracker.domain.model.RecurringEventType
 
 class ReminderNotificationWorker(
     appContext: Context,
@@ -27,12 +29,11 @@ class ReminderNotificationWorker(
         val occurrenceDate = inputData.getString(KEY_OCCURRENCE_DATE)
             ?: return Result.failure(Data.Builder().putString(KEY_FAILURE_REASON, FAILURE_INVALID_INPUT).build())
         val eventType = inputData.getString(KEY_EVENT_TYPE)
-            ?.lowercase()
-            ?.replace('_', ' ')
             ?: return Result.failure(Data.Builder().putString(KEY_FAILURE_REASON, FAILURE_INVALID_INPUT).build())
         val subscriptionName = inputData.getString(KEY_SUBSCRIPTION_NAME).orEmpty()
-        val title = subscriptionName.ifBlank { "Subscription reminder" }
-        val content = "$eventType on $occurrenceDate"
+        val title = subscriptionName.ifBlank { applicationContext.getString(R.string.notification_default_title) }
+        val eventTypeLabel = localizedEventType(eventType)
+        val content = applicationContext.getString(R.string.notification_content_format, eventTypeLabel, occurrenceDate)
         val launchIntent = applicationContext.packageManager.getLaunchIntentForPackage(applicationContext.packageName)
         val pendingIntent = launchIntent?.let {
             PendingIntent.getActivity(
@@ -63,12 +64,29 @@ class ReminderNotificationWorker(
     private fun createChannel() {
         val channel = NotificationChannel(
             CHANNEL_ID,
-            "Subscription reminders",
+            applicationContext.getString(R.string.notification_channel_name),
             NotificationManager.IMPORTANCE_DEFAULT,
         ).apply {
-            description = "Upcoming subscription event reminders"
+            description = applicationContext.getString(R.string.notification_channel_description)
         }
         applicationContext.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+    }
+
+    private fun localizedEventType(raw: String): String = try {
+        applicationContext.getString(
+            when (RecurringEventType.valueOf(raw.uppercase())) {
+                RecurringEventType.BILLING -> R.string.event_type_billing
+                RecurringEventType.EXPIRATION -> R.string.event_type_expiration
+                RecurringEventType.TRIAL_END -> R.string.event_type_trial_end
+                RecurringEventType.QUOTA_RESET -> R.string.event_type_quota_reset
+                RecurringEventType.CUSTOM -> R.string.event_type_custom
+                RecurringEventType.PRICE_CHANGE -> R.string.event_type_price_change
+                RecurringEventType.PROMOTION_END -> R.string.event_type_promotion_end
+                RecurringEventType.CONTRACT_NOTICE -> R.string.event_type_contract_notice
+            },
+        )
+    } catch (_: IllegalArgumentException) {
+        applicationContext.getString(R.string.event_type_custom)
     }
 
     companion object {

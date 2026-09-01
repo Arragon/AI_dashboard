@@ -26,11 +26,13 @@ Keep recurrence anchors explicit. Monthly recurrence derives every occurrence fr
 
 ## 5. UI/UX Notes
 
-The Compose core uses the Precision Finance palette (`#F5F6F7` background, white surfaces, `#16181C` text, `#35675D` accent), 20dp page gutters, thin dividers, compact rows, small radii, and monospace aligned amounts. Avoid turning every section into a card. Keep Android activity-result APIs in `MainActivity`, not in presentation state.
+The Compose core uses the Quiet Ledger system documented in root `DESIGN.md`: warm paper/charcoal canvases, separately calibrated light and dark semantic palettes, one juniper accent, 20dp page gutters, thin dividers, restrained surfaces, and monospace aligned amounts. Avoid turning every section into a card. Keep Android activity-result APIs in `MainActivity`, not in presentation state.
 
 ## 6. Debugging Notes
 
 The Android SDK is at `C:\Users\Lamires\AppData\Local\Android\Sdk`. Stable platform 34 and build-tools 34.0.0 are installed. A JDK 21 runtime is available under the user's `.jdks` directory. When `Application` implements WorkManager `Configuration.Provider`, remove `androidx.work.WorkManagerInitializer` through a manifest merge rule; otherwise lint reports conflicting initialization. Robolectric also depends on the provider for on-demand initialization.
+
+If a Gradle build crashes the JVM (hs_err_pid*.log / replay_pid*.log appear in the project root, typically `Out of Memory Error` / native `Chunk::new`), the daemon leaves file locks on `app/build/intermediates/.../R.jar`. Recovery: `gradlew.bat --stop`, force-stop any `java`/`gradle` processes, delete `app\build` and the root `build` directory, then re-run. Do not delete the crash logs while diagnosing, but they are not part of the source tree and should not be committed.
 
 ## 7. Do Not Do
 
@@ -41,3 +43,18 @@ The Android SDK is at `C:\Users\Lamires\AppData\Local\Android\Sdk`. Stable platf
 - Do not expose Room entities or DAOs to Compose/presentation.
 - Do not restore an imported backup until `BackupCodec` validation has succeeded and the user explicitly confirms Replace semantics.
 - Do not combine amounts across currencies or imply currency conversion.
+
+## 8. Localization
+
+- V0.2 adds English (`values`) and Simplified Chinese (`values-zh-rCN`) string resources.
+- In-app language switching is implemented via `AppLanguageManager` using `SharedPreferences` and `Context.createConfigurationContext` in `Application.attachBaseContext` and `MainActivity.attachBaseContext`.
+- `CoreViewModel` validation and error strings remain in English for V0.2 because they flow through `Throwable.message` and are not yet mapped to string resources.
+- `semantics { contentDescription = ... }` is not a Composable context, so `stringResource` values must be captured into local variables before being assigned.
+- `@Composable` label helpers (`statusLabel`, `eventTypeLabel`, `unitLabel`, `recurrenceDisplay`) must not be invoked inside non-Composing lambdas such as `associateBy`; use explicit `for` loops in the Composable body instead.
+
+## 9. Visual System
+
+- `DESIGN.md` is the durable visual source of truth; `ui/theme/Theme.kt` is its semantic Compose implementation.
+- Keep theme switching system-driven through `isSystemInDarkTheme()` unless a persisted user override is explicitly added later.
+- Core text/background pairs have automated WCAG AA contrast tests in `ThemeTest`.
+- Keep motion bounded to short color/transform feedback. Avoid perpetual animation, layout-property animation, blur-heavy surfaces, and per-frame state updates.

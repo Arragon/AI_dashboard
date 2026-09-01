@@ -1,6 +1,7 @@
 package com.subscriptiontracker
 
 import android.app.Application
+import android.content.Context
 import androidx.work.Configuration
 import androidx.work.WorkManager
 import com.subscriptiontracker.data.backup.BackupCodec
@@ -19,6 +20,7 @@ import com.subscriptiontracker.domain.reminder.ReminderSchedulingPolicy
 import com.subscriptiontracker.domain.repository.QuotaRepository
 import com.subscriptiontracker.domain.repository.RecurringEventRepository
 import com.subscriptiontracker.domain.repository.SubscriptionRepository
+import com.subscriptiontracker.platform.i18n.AppLanguageManager
 import com.subscriptiontracker.platform.reminder.AndroidNotificationPermissionStatusProvider
 import com.subscriptiontracker.platform.reminder.NotificationAppSettingsIntentFactory
 import com.subscriptiontracker.platform.reminder.NotificationPermissionStatusProvider
@@ -34,6 +36,10 @@ import java.io.OutputStream
 import java.time.ZoneId
 
 class SubscriptionTrackerApplication : Application(), Configuration.Provider {
+    override fun attachBaseContext(base: Context) {
+        super.attachBaseContext(AppLanguageManager.wrap(base))
+    }
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().build()
 
