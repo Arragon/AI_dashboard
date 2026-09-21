@@ -28,6 +28,8 @@ Keep recurrence anchors explicit. Monthly recurrence derives every occurrence fr
 
 The Compose core uses the Quiet Ledger system documented in root `DESIGN.md`: warm paper/charcoal canvases, separately calibrated light and dark semantic palettes, one juniper accent, 20dp page gutters, thin dividers, restrained surfaces, and monospace aligned amounts. Avoid turning every section into a card. Keep Android activity-result APIs in `MainActivity`, not in presentation state.
 
+Subscription templates only prefill identity, category, currency, and billing cycle. Do not store a plan price on a template; published plans change and a single product has more than one price.
+
 ## 6. Debugging Notes
 
 The Android SDK is at `C:\Users\Lamires\AppData\Local\Android\Sdk`. Stable platform 34 and build-tools 34.0.0 are installed. A JDK 21 runtime is available under the user's `.jdks` directory. When `Application` implements WorkManager `Configuration.Provider`, remove `androidx.work.WorkManagerInitializer` through a manifest merge rule; otherwise lint reports conflicting initialization. Robolectric also depends on the provider for on-demand initialization.
@@ -43,16 +45,25 @@ If a Gradle build crashes the JVM (hs_err_pid*.log / replay_pid*.log appear in t
 - Do not expose Room entities or DAOs to Compose/presentation.
 - Do not restore an imported backup until `BackupCodec` validation has succeeded and the user explicitly confirms Replace semantics.
 - Do not combine amounts across currencies or imply currency conversion.
+- Do not invent quota used, remaining, or limit values that the provider response did not report.
 
 ## 8. Localization
 
 - V0.2 adds English (`values`) and Simplified Chinese (`values-zh-rCN`) string resources.
 - In-app language switching is implemented via `AppLanguageManager` using `SharedPreferences` and `Context.createConfigurationContext` in `Application.attachBaseContext` and `MainActivity.attachBaseContext`.
-- `CoreViewModel` validation and error strings remain in English for V0.2 because they flow through `Throwable.message` and are not yet mapped to string resources.
+- `CoreViewModel` validation still throws stable English messages. The Compose layer maps those known messages to string resources, so new validation text needs both the thrown message and a `resolveUserMessage` branch.
 - `semantics { contentDescription = ... }` is not a Composable context, so `stringResource` values must be captured into local variables before being assigned.
 - `@Composable` label helpers (`statusLabel`, `eventTypeLabel`, `unitLabel`, `recurrenceDisplay`) must not be invoked inside non-Composing lambdas such as `associateBy`; use explicit `for` loops in the Composable body instead.
 
-## 9. Visual System
+## 9. Online usage
+
+- Official read-only GET endpoints only. Do not send a chat completion to discover a balance; that spends quota and mixes the probe into real usage.
+- A missing window stays missing. Do not synthesize a 5-hour meter, a weekly meter, or a consumed amount the response did not contain.
+- Transient failures keep the previous numbers and `QuotaSyncState.STALE`. Authentication failures use `AUTH_REQUIRED` and must not look freshly updated.
+- API keys stay in `EncryptedApiKeyStore`. Do not put them in Room, backup JSON, logs, or sync notes.
+- DeepSeek's balance endpoint reports remaining balance, not consumption. Moonshot cash can be negative; store that as a deficit note because remaining amounts cannot be negative.
+
+## 10. Visual System
 
 - `DESIGN.md` is the durable visual source of truth; `ui/theme/Theme.kt` is its semantic Compose implementation.
 - Keep theme switching system-driven through `isSystemInDarkTheme()` unless a persisted user override is explicitly added later.

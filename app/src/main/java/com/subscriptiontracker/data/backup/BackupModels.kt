@@ -17,6 +17,8 @@ data class BackupContent(
 data class BackupSettings(
     val defaultCurrencyCode: String? = null,
     val defaultTimezoneId: String? = null,
+    val reminderOffsetDays: Int? = null,
+    val reminderTime: String? = null,
 )
 
 data class ValidatedBackup(
@@ -64,8 +66,10 @@ internal data class BackupDocumentDto(
 
 @Serializable
 internal data class SettingsBackupDto(
-    val defaultCurrencyCode: String?,
-    val defaultTimezoneId: String?,
+    val defaultCurrencyCode: String? = null,
+    val defaultTimezoneId: String? = null,
+    val reminderOffsetDays: Int? = null,
+    val reminderTime: String? = null,
 )
 
 @Serializable
@@ -91,6 +95,7 @@ internal data class SubscriptionBackupDto(
     val createdAt: String,
     val updatedAt: String,
     val archivedAt: String?,
+    val onlineProviderId: String? = null,
 )
 
 @Serializable
@@ -137,4 +142,8 @@ internal data class QuotaBackupDto(
     val resetEventId: String?,
     val warningThresholdPercentage: String?,
     val updatedAt: String,
+    val stableKey: String? = null,
+    val origin: String = "MANUAL",
+    val syncState: String = "FRESH",
+    val syncNote: String? = null,
 )

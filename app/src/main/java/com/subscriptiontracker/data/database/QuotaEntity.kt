@@ -1,5 +1,6 @@
 package com.subscriptiontracker.data.database
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -41,4 +42,10 @@ data class QuotaEntity(
     val resetEventId: String?,
     val warningThresholdPercentage: String?,
     val updatedAt: String,
+    val stableKey: String?,
+    @ColumnInfo(defaultValue = "'MANUAL'")
+    val origin: String,
+    @ColumnInfo(defaultValue = "'FRESH'")
+    val syncState: String,
+    val syncNote: String?,
 )

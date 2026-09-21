@@ -20,12 +20,24 @@ import java.time.ZoneId
 import java.util.Currency
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertInstanceOf
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 
 class BackupCodecTest {
+    private fun stripOnlineFields(element: JsonElement): JsonElement = when (element) {
+        is JsonObject -> JsonObject(
+            element.filterKeys { it !in ONLINE_FIELDS }.mapValues { (_, value) -> stripOnlineFields(value) },
+        )
+        is JsonArray -> JsonArray(element.map(::stripOnlineFields))
+        else -> element
+    }
+
     private val exportedAt = Instant.parse("2026-03-01T02:03:04.123456789Z")
     private val codec = BackupCodec("1.2.3-test", Clock.fixed(exportedAt, ZoneId.of("UTC")))
 
@@ -61,6 +73,16 @@ class BackupCodecTest {
         assertFailureCode(codec.decode("{not-json"), BackupErrorCode.MALFORMED_JSON)
         val withUnknownField = codec.encode(contentWithEveryEventType()).replaceFirst("{", "{\n  \"unknown\": true,")
         assertFailureCode(codec.decode(withUnknownField), BackupErrorCode.MALFORMED_JSON)
+    }
+
+    @Test
+    fun legacyBackupWithoutOnlineFieldsStillDecodes() {
+        val content = contentWithEveryEventType()
+        val stripped = Json.encodeToString(JsonElement.serializer(), stripOnlineFields(Json.parseToJsonElement(codec.encode(content))))
+
+        val result = assertInstanceOf(BackupDecodeResult.Success::class.java, codec.decode(stripped))
+
+        assertEquals(content, result.backup.content)
     }
 
     @Test
@@ -269,5 +291,9 @@ class BackupCodecTest {
             this.events = events
             this.quotas = quotas
         }
+    }
+
+    private companion object {
+        val ONLINE_FIELDS = setOf("onlineProviderId", "stableKey", "origin", "syncState", "syncNote")
     }
 }

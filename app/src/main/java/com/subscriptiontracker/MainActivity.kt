@@ -34,6 +34,9 @@ class MainActivity : ComponentActivity() {
                         container.quotaRepository,
                         container.backupGateway,
                         ScheduleRefresh { container.scheduleReconciler.reconcile() },
+                        defaultsStore = container.ledgerPreferences,
+                        apiKeys = container.apiKeyStore,
+                        onlineQuotas = container.onlineQuotaService,
                     )
                 }
                 val state by model.state.collectAsStateWithLifecycle()
@@ -62,6 +65,7 @@ class MainActivity : ComponentActivity() {
                         AppLanguageManager.set(this@MainActivity, tag)
                         this@MainActivity.recreate()
                     },
+                    versionName = com.subscriptiontracker.BuildConfig.VERSION_NAME,
                 )
             }
         }

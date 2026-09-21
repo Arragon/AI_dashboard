@@ -3,6 +3,8 @@ package com.subscriptiontracker.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.subscriptiontracker.domain.model.Quota
+import com.subscriptiontracker.domain.model.QuotaOrigin
+import com.subscriptiontracker.domain.model.QuotaSyncState
 import com.subscriptiontracker.domain.model.RecurrenceRule
 import com.subscriptiontracker.domain.model.RecurrenceUnit
 import com.subscriptiontracker.domain.model.RecurringEvent
@@ -16,6 +18,14 @@ import com.subscriptiontracker.domain.query.SubscriptionFilters
 import com.subscriptiontracker.domain.query.SubscriptionQuery
 import com.subscriptiontracker.domain.query.SubscriptionQueryService
 import com.subscriptiontracker.domain.query.SubscriptionSort
+import com.subscriptiontracker.domain.provider.ApiKeyStore
+import com.subscriptiontracker.domain.provider.MemoryApiKeyStore
+import com.subscriptiontracker.domain.provider.OnlineFailureKind
+import com.subscriptiontracker.domain.provider.OnlineFetchOutcome
+import com.subscriptiontracker.domain.provider.OnlineProviders
+import com.subscriptiontracker.domain.provider.OnlineQuotaMerge
+import com.subscriptiontracker.domain.provider.OnlineQuotaService
+import com.subscriptiontracker.domain.provider.QuotaHttp
 import com.subscriptiontracker.domain.repository.QuotaRepository
 import com.subscriptiontracker.domain.repository.RecurringEventRepository
 import com.subscriptiontracker.domain.repository.SubscriptionRepository
@@ -54,6 +64,16 @@ fun interface ScheduleRefresh {
 
 data class UpcomingEvent(val event: RecurringEvent, val subscriptionName: String, val date: LocalDate)
 
+enum class AttentionKind { RENEWAL, TRIAL, EXPIRATION, QUOTA }
+
+data class AttentionItem(
+    val subscriptionId: UUID,
+    val subscriptionName: String,
+    val kind: AttentionKind,
+    val date: LocalDate? = null,
+    val quotaName: String? = null,
+)
+
 data class CoreState(
     val loading: Boolean = true,
     val error: String? = null,
@@ -67,8 +87,11 @@ data class CoreState(
     val annualized: Map<Currency, BigDecimal> = emptyMap(),
     val activeCount: Int = 0,
     val upcoming: List<UpcomingEvent> = emptyList(),
+    val attention: List<AttentionItem> = emptyList(),
+    val defaults: LedgerDefaults = LedgerDefaults(),
     val query: SubscriptionQuery = SubscriptionQuery(),
     val pendingImport: ImportPreview? = null,
+    val linkedKeyIds: Set<UUID> = emptySet(),
 )
 
 data class SubscriptionInput(
@@ -84,6 +107,10 @@ data class SubscriptionInput(
     val expirationDate: String = "",
     val trialEndDate: String = "",
     val notes: String = "",
+    val generatedBillingTitle: String = "Renewal",
+    val generatedExpirationTitle: String = "Expires",
+    val generatedTrialTitle: String = "Trial ends",
+    val onlineProviderId: String = "",
 )
 
 data class EventInput(
@@ -120,6 +147,9 @@ class CoreViewModel(
     private val scheduleRefresh: ScheduleRefresh,
     private val clock: Clock = Clock.systemDefaultZone(),
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    private val defaultsStore: LedgerDefaultsStore = MemoryDefaultsStore(),
+    private val apiKeys: ApiKeyStore = MemoryApiKeyStore(),
+    private val onlineQuotas: OnlineQuotaService = OnlineQuotaService(QuotaHttp { _, _ -> error("No usage client") }),
 ) : ViewModel() {
     private val queryService = SubscriptionQueryService()
     private val spendService = SpendCalculationService()
@@ -128,7 +158,12 @@ class CoreViewModel(
     private val mutableState = MutableStateFlow(CoreState())
     val state: StateFlow<CoreState> = mutableState.asStateFlow()
 
-    init { refresh() }
+    init {
+        viewModelScope.launch {
+            runCatching { withContext(ioDispatcher) { scheduleRefresh.reconcile() } }
+            load()
+        }
+    }
 
     fun refresh() = viewModelScope.launch { load() }
 
@@ -145,6 +180,22 @@ class CoreViewModel(
         val existing = id?.let { subscriptions.getById(it) }
         val parsed = input.toDomain(existing, now)
         subscriptions.save(parsed)
+        val existingEvents = events.listForSubscription(parsed.id)
+        synthesizeMissingEvents(parsed, existingEvents, defaultsStore.read(), input, now)
+    }
+
+    fun updateDefaults(currencyCode: String, reminderOffset: String, reminderTime: String, onResult: (Result<Unit>) -> Unit = {}) = viewModelScope.launch {
+        val result = runCatching {
+            val code = currencyCode.trim().uppercase()
+            require(code.length == 3) { "Use a 3-letter ISO currency code" }
+            runCatching { Currency.getInstance(code) }.getOrElse { error("Unknown ISO currency") }
+            val days = reminderOffset.toIntOrNull() ?: error("Reminder offset must be a number")
+            require(days >= 0) { "Reminder offset cannot be negative" }
+            reminderTime.parseTime()
+            defaultsStore.write(LedgerDefaults(code, days, reminderTime.trim()))
+        }
+        if (result.isSuccess) load("Defaults saved") else mutableState.value = mutableState.value.copy(error = result.exceptionOrNull()?.message ?: "Operation failed")
+        onResult(result)
     }
 
     fun cancel(id: UUID, expiry: LocalDate?, onResult: (Result<Unit>) -> Unit = {}) = mutate(onResult) {
@@ -174,6 +225,72 @@ class CoreViewModel(
     }
 
     fun deleteQuota(id: UUID, onResult: (Result<Unit>) -> Unit = {}) = mutate(onResult) { quotas.delete(id) }
+
+    fun updateOnlineProvider(id: UUID, providerId: String?, onResult: (Result<Unit>) -> Unit = {}) = mutate(onResult) {
+        val current = requireNotNull(subscriptions.getById(id)) { "Subscription not found" }
+        val normalized = providerId?.trim()?.ifBlank { null }
+        if (normalized != null && OnlineProviders.find(normalized) == null) error("Online provider is not supported")
+        val now = clock.instant()
+        subscriptions.save(current.copy(onlineProviderId = normalized, updatedAt = now))
+    }
+
+    fun saveApiKey(subscriptionId: UUID, rawKey: String, onResult: (Result<Unit>) -> Unit = {}) = viewModelScope.launch {
+        val result = runCatching {
+            val key = rawKey.trim()
+            require(key.isNotEmpty()) { "API key is required" }
+            require(!key.contains('\n') && !key.contains('\r')) { "API key must be a single line" }
+            withContext(ioDispatcher) { apiKeys.write(subscriptionId, key) }
+        }
+        if (result.isSuccess) load("API key saved") else mutableState.value = mutableState.value.copy(error = result.exceptionOrNull()?.message ?: "Operation failed")
+        onResult(result)
+    }
+
+    fun clearApiKey(subscriptionId: UUID, onResult: (Result<Unit>) -> Unit = {}) = viewModelScope.launch {
+        val result = runCatching { withContext(ioDispatcher) { apiKeys.delete(subscriptionId) } }
+        if (result.isSuccess) load("API key removed") else mutableState.value = mutableState.value.copy(error = result.exceptionOrNull()?.message ?: "Operation failed")
+        onResult(result)
+    }
+
+    fun refreshOnlineQuotas(subscriptionId: UUID? = null) = viewModelScope.launch {
+        val result = runCatching {
+            withContext(ioDispatcher) {
+                val targets = subscriptions.list().filter { subscription ->
+                    subscription.onlineProviderId != null && (subscriptionId == null || subscription.id == subscriptionId)
+                }
+                if (targets.isEmpty()) error("Choose an online provider first")
+                var refreshed = 0
+                var failedMessage: String? = null
+                targets.forEach { subscription ->
+                    val providerId = requireNotNull(subscription.onlineProviderId)
+                    val key = apiKeys.read(subscription.id)
+                    val outcome = if (key.isNullOrBlank()) {
+                        OnlineFetchOutcome.Failure(OnlineFailureKind.AUTH, "API key is required")
+                    } else {
+                        onlineQuotas.fetch(providerId, key)
+                    }
+                    val changed = OnlineQuotaMerge.apply(
+                        quotas.listForSubscription(subscription.id),
+                        subscription.id,
+                        providerId,
+                        outcome,
+                        clock.instant(),
+                    )
+                    changed.forEach { quotas.save(it) }
+                    when (outcome) {
+                        is OnlineFetchOutcome.Success -> refreshed += 1
+                        is OnlineFetchOutcome.Failure -> failedMessage = outcome.message
+                    }
+                }
+                val failure = failedMessage
+                if (refreshed == 0 && failure != null) error(failure)
+                if (failure != null) "Some usage refreshes failed" else "Online usage refreshed"
+            }
+        }
+        if (result.isSuccess) load(result.getOrThrow()) else {
+            load()
+            mutableState.value = mutableState.value.copy(error = result.exceptionOrNull()?.message ?: "Usage request failed", message = null)
+        }
+    }
 
     fun export(output: OutputStream, onResult: (Result<Unit>) -> Unit) = viewModelScope.launch {
         val result = runCatching { withContext(ioDispatcher) { backup.export(output) } }
@@ -247,10 +364,100 @@ class CoreViewModel(
                 annualized = spendService.annualizedRecurringSpend(allSubscriptions, today),
                 activeCount = spendService.activeSubscriptionCount(allSubscriptions, today),
                 upcoming = upcoming,
+                attention = attentionItems(allSubscriptions, allEvents, allQuotas, today),
+                defaults = defaultsStore.read(),
                 query = query,
+                linkedKeyIds = allSubscriptions.mapNotNullTo(linkedSetOf()) { subscription ->
+                    subscription.id.takeIf { apiKeys.hasKey(subscription.id) }
+                },
             )
         }.onFailure { mutableState.value = mutableState.value.copy(loading = false, error = it.message ?: "Unable to load data") }
     }
+
+    private fun attentionItems(
+        subscriptions: List<Subscription>,
+        allEvents: List<RecurringEvent>,
+        allQuotas: List<Quota>,
+        today: LocalDate,
+    ): List<AttentionItem> {
+        val horizon = today.plusDays(3)
+        val visible = subscriptions.filter { it.status == SubscriptionStatus.ACTIVE || it.status == SubscriptionStatus.CANCELLED_PENDING_EXPIRY }
+        val items = mutableListOf<AttentionItem>()
+        visible.forEach { subscription ->
+            allEvents.filter { it.subscriptionId == subscription.id && it.enabled }.forEach { event ->
+                val date = recurrenceEngine.occurrenceOnOrAfter(event.nextOccurrence, event.recurrenceRule, today) ?: return@forEach
+                if (date > horizon) return@forEach
+                val kind = when (event.type) {
+                    RecurringEventType.BILLING -> AttentionKind.RENEWAL
+                    RecurringEventType.TRIAL_END -> AttentionKind.TRIAL
+                    RecurringEventType.EXPIRATION -> AttentionKind.EXPIRATION
+                    else -> null
+                } ?: return@forEach
+                items += AttentionItem(subscription.id, subscription.name, kind, date)
+            }
+            allQuotas.filter { it.subscriptionId == subscription.id && !it.unlimited }.forEach { quota ->
+                val percentage = quota.usedPercentage() ?: return@forEach
+                if (percentage >= BigDecimal(80)) {
+                    items += AttentionItem(subscription.id, subscription.name, AttentionKind.QUOTA, quotaName = quota.name)
+                }
+            }
+        }
+        return items
+    }
+
+    private suspend fun synthesizeMissingEvents(
+        subscription: Subscription,
+        existingEvents: List<RecurringEvent>,
+        defaults: LedgerDefaults,
+        input: SubscriptionInput,
+        now: Instant,
+    ) {
+        val reminders = reminderSettings(defaults)
+        val zone = ZoneId.systemDefault()
+        val interval = subscription.billingInterval
+        val count = subscription.billingIntervalCount
+        if (interval != null && count != null && existingEvents.none { it.type == RecurringEventType.BILLING }) {
+            events.save(
+                generatedEvent(subscription, RecurringEventType.BILLING, input.generatedBillingTitle, subscription.startDate, RecurrenceRule.every(count, interval), zone, reminders, now),
+            )
+        }
+        val expiration = subscription.expirationDate
+        if (expiration != null && existingEvents.none { it.type == RecurringEventType.EXPIRATION }) {
+            events.save(generatedEvent(subscription, RecurringEventType.EXPIRATION, input.generatedExpirationTitle, expiration, RecurrenceRule.OneTime, zone, reminders, now))
+        }
+        val trialEnd = subscription.trialEndDate
+        if (trialEnd != null && existingEvents.none { it.type == RecurringEventType.TRIAL_END }) {
+            events.save(generatedEvent(subscription, RecurringEventType.TRIAL_END, input.generatedTrialTitle, trialEnd, RecurrenceRule.OneTime, zone, reminders, now))
+        }
+    }
+}
+
+private fun generatedEvent(
+    subscription: Subscription,
+    type: RecurringEventType,
+    title: String,
+    date: LocalDate,
+    rule: RecurrenceRule,
+    zone: ZoneId,
+    reminders: ReminderSettings,
+    now: Instant,
+) = RecurringEvent(
+    id = UUID.randomUUID(),
+    subscriptionId = subscription.id,
+    type = type,
+    title = title.ifBlank { subscription.name },
+    nextOccurrence = date,
+    recurrenceRule = rule,
+    timezone = zone,
+    reminders = reminders,
+    createdAt = now,
+    updatedAt = now,
+)
+
+private fun reminderSettings(defaults: LedgerDefaults): ReminderSettings {
+    val days = defaults.reminderOffsetDays.coerceAtLeast(0)
+    val time = runCatching { LocalTime.parse(defaults.reminderTime.trim()) }.getOrDefault(LocalTime.of(9, 0))
+    return ReminderSettings(enabled = true, offsets = setOf(ReminderOffset(days)), notificationTime = time)
 }
 
 private fun SubscriptionInput.toDomain(existing: Subscription?, now: Instant): Subscription {
@@ -272,6 +479,9 @@ private fun SubscriptionInput.toDomain(existing: Subscription?, now: Instant): S
         nextBillingDate = existing?.nextBillingDate, expirationDate = expirationDate.parseOptionalDate("Expiration date"),
         trialEndDate = trialEndDate.parseOptionalDate("Trial end date"), notes = notes.trim(), tags = existing?.tags.orEmpty(),
         plan = existing?.plan, createdAt = existing?.createdAt ?: now, updatedAt = now, archivedAt = existing?.archivedAt,
+        onlineProviderId = onlineProviderId.trim().ifBlank { null }?.also { providerId ->
+            if (OnlineProviders.find(providerId) == null) error("Online provider is not supported")
+        },
     )
 }
 
@@ -299,7 +509,9 @@ private fun QuotaInput.toDomain(subscriptionId: UUID, existing: Quota?, now: Ins
     fun decimal(value: String, label: String) = if (value.isBlank()) null else value.toBigDecimalOrNull() ?: error("$label must be a number")
     return Quota(existing?.id ?: UUID.randomUUID(), subscriptionId, name.trim(), unit.trim(), decimal(used, "Used"), decimal(remaining, "Remaining"),
         decimal(limit, "Limit"), decimal(percentage, "Percentage"), unlimited,
-        resetEventId.takeIf(String::isNotBlank)?.let { runCatching { UUID.fromString(it) }.getOrElse { error("Invalid reset event") } }, null, now)
+        resetEventId.takeIf(String::isNotBlank)?.let { runCatching { UUID.fromString(it) }.getOrElse { error("Invalid reset event") } },
+        existing?.warningThresholdPercentage, now, existing?.stableKey, existing?.origin ?: QuotaOrigin.MANUAL,
+        existing?.syncState ?: QuotaSyncState.FRESH, existing?.syncNote)
 }
 
 private fun String.parseDate(label: String): LocalDate = runCatching { LocalDate.parse(trim()) }.getOrElse { error("$label must use YYYY-MM-DD") }

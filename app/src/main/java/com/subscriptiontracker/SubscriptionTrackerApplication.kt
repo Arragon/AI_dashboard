@@ -20,7 +20,13 @@ import com.subscriptiontracker.domain.reminder.ReminderSchedulingPolicy
 import com.subscriptiontracker.domain.repository.QuotaRepository
 import com.subscriptiontracker.domain.repository.RecurringEventRepository
 import com.subscriptiontracker.domain.repository.SubscriptionRepository
+import com.subscriptiontracker.domain.provider.ApiKeyStore
+import com.subscriptiontracker.domain.provider.OnlineQuotaService
+import com.subscriptiontracker.platform.LedgerPreferences
+import com.subscriptiontracker.platform.quota.EncryptedApiKeyStore
+import com.subscriptiontracker.platform.quota.UrlConnectionQuotaHttp
 import com.subscriptiontracker.platform.i18n.AppLanguageManager
+import com.subscriptiontracker.presentation.LedgerDefaults
 import com.subscriptiontracker.platform.reminder.AndroidNotificationPermissionStatusProvider
 import com.subscriptiontracker.platform.reminder.NotificationAppSettingsIntentFactory
 import com.subscriptiontracker.platform.reminder.NotificationPermissionStatusProvider
@@ -63,6 +69,11 @@ class SubscriptionTrackerApplication : Application(), Configuration.Provider {
         private set
     lateinit var notificationSettingsIntentFactory: NotificationAppSettingsIntentFactory
         private set
+    lateinit var ledgerPreferences: LedgerPreferences
+        private set
+    val apiKeyStore: ApiKeyStore by lazy { EncryptedApiKeyStore(this) }
+    lateinit var onlineQuotaService: OnlineQuotaService
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -73,15 +84,23 @@ class SubscriptionTrackerApplication : Application(), Configuration.Provider {
         recordStore = RoomRecordStore(database.transactionDao())
         backupCodec = BackupCodec(BuildConfig.VERSION_NAME)
         replaceRestoreService = ReplaceRestoreService(backupCodec, recordStore)
+        ledgerPreferences = LedgerPreferences(this)
+        onlineQuotaService = OnlineQuotaService(UrlConnectionQuotaHttp())
         backupGateway = object : BackupGateway {
             override suspend fun export(output: OutputStream) {
                 val allSubscriptions = subscriptionRepository.list()
+                val defaults = ledgerPreferences.read()
                 backupCodec.write(
                     BackupContent(
                         subscriptions = allSubscriptions,
                         events = allSubscriptions.flatMap { recurringEventRepository.listForSubscription(it.id) },
                         quotas = allSubscriptions.flatMap { quotaRepository.listForSubscription(it.id) },
-                        settings = BackupSettings(defaultCurrencyCode = "USD", defaultTimezoneId = ZoneId.systemDefault().id),
+                        settings = BackupSettings(
+                            defaultCurrencyCode = defaults.currencyCode,
+                            defaultTimezoneId = ZoneId.systemDefault().id,
+                            reminderOffsetDays = defaults.reminderOffsetDays,
+                            reminderTime = defaults.reminderTime,
+                        ),
                     ),
                     output,
                 )
@@ -103,7 +122,18 @@ class SubscriptionTrackerApplication : Application(), Configuration.Provider {
             override suspend fun replace(preview: ImportPreview): Result<Unit> = when (
                 val restored = replaceRestoreService.restore(ByteArrayInputStream(preview.bytes), confirmed = true)
             ) {
-                is RestoreResult.Success -> Result.success(Unit)
+                is RestoreResult.Success -> {
+                    val settings = restored.backup.content.settings
+                    val current = ledgerPreferences.read()
+                    ledgerPreferences.write(
+                        LedgerDefaults(
+                            currencyCode = settings.defaultCurrencyCode ?: current.currencyCode,
+                            reminderOffsetDays = settings.reminderOffsetDays ?: current.reminderOffsetDays,
+                            reminderTime = settings.reminderTime ?: current.reminderTime,
+                        ),
+                    )
+                    Result.success(Unit)
+                }
                 is RestoreResult.Failure -> Result.failure(IllegalArgumentException(restored.errors.joinToString("\n") { it.message }))
             }
         }
