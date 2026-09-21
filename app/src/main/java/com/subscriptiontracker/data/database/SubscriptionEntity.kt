@@ -33,4 +33,5 @@ data class SubscriptionEntity(
     val createdAt: String,
     val updatedAt: String,
     val archivedAt: String?,
+    val onlineProviderId: String?,
 )

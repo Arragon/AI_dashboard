@@ -1,6 +1,8 @@
 package com.subscriptiontracker.data.backup
 
 import com.subscriptiontracker.domain.model.Quota
+import com.subscriptiontracker.domain.model.QuotaOrigin
+import com.subscriptiontracker.domain.model.QuotaSyncState
 import com.subscriptiontracker.domain.model.RecurrenceRule
 import com.subscriptiontracker.domain.model.RecurrenceUnit
 import com.subscriptiontracker.domain.model.RecurringEvent
@@ -143,6 +145,8 @@ class BackupCodec(
                     settings = BackupSettings(
                         defaultCurrencyCode = document.settings.defaultCurrencyCode,
                         defaultTimezoneId = document.settings.defaultTimezoneId,
+                        reminderOffsetDays = document.settings.reminderOffsetDays,
+                        reminderTime = document.settings.reminderTime,
                     ),
                 ),
             ),
@@ -186,6 +190,9 @@ private class Validator {
         if (status != null && status != SubscriptionStatus.ARCHIVED && dto.archivedAt != null) {
             invalid("$path.archivedAt", "Only archived subscriptions can have an archived timestamp")
         }
+        if (dto.onlineProviderId != null && dto.onlineProviderId.isBlank()) {
+            invalid("$path.onlineProviderId", "Online provider id cannot be blank")
+        }
         if (listOf(id, status, price, currency, startDate, createdAt, updatedAt).any { it == null }) return null
         return construct(path) {
             Subscription(
@@ -210,6 +217,7 @@ private class Validator {
                 createdAt = createdAt!!,
                 updatedAt = updatedAt!!,
                 archivedAt = archivedAt,
+                onlineProviderId = dto.onlineProviderId?.takeIf { it.isNotBlank() },
             )
         }
     }
@@ -271,7 +279,11 @@ private class Validator {
         val warning = percentage(dto.warningThresholdPercentage, "$path.warningThresholdPercentage")
         val resetEventId = dto.resetEventId?.let { uuid(it, "$path.resetEventId") }
         val updatedAt = instant(dto.updatedAt, "$path.updatedAt")
-        if (listOf(id, subscriptionId, updatedAt).any { it == null }) return null
+        val origin = enumValue<QuotaOrigin>(dto.origin, "$path.origin")
+        val syncState = enumValue<QuotaSyncState>(dto.syncState, "$path.syncState")
+        if (dto.stableKey != null && dto.stableKey.isBlank()) invalid("$path.stableKey", "Quota stable key cannot be blank")
+        if (dto.syncNote != null && dto.syncNote.isBlank()) invalid("$path.syncNote", "Quota sync note cannot be blank")
+        if (listOf(id, subscriptionId, updatedAt, origin, syncState).any { it == null }) return null
         return construct(path) {
             Quota(
                 id = id!!,
@@ -286,6 +298,10 @@ private class Validator {
                 resetEventId = resetEventId,
                 warningThresholdPercentage = warning,
                 updatedAt = updatedAt!!,
+                stableKey = dto.stableKey,
+                origin = origin!!,
+                syncState = syncState!!,
+                syncNote = dto.syncNote,
             )
         }
     }
@@ -388,7 +404,12 @@ private fun BackupContent.toDto(appVersion: String, exportedAt: Instant) = Backu
     subscriptions = subscriptions.map(Subscription::toBackupDto),
     events = events.map(RecurringEvent::toBackupDto),
     quotas = quotas.map(Quota::toBackupDto),
-    settings = SettingsBackupDto(settings.defaultCurrencyCode, settings.defaultTimezoneId),
+    settings = SettingsBackupDto(
+        settings.defaultCurrencyCode,
+        settings.defaultTimezoneId,
+        settings.reminderOffsetDays,
+        settings.reminderTime,
+    ),
 )
 
 private fun Subscription.toBackupDto() = SubscriptionBackupDto(
@@ -398,7 +419,7 @@ private fun Subscription.toBackupDto() = SubscriptionBackupDto(
     startDate = startDate.toString(), nextBillingDate = nextBillingDate?.toString(),
     expirationDate = expirationDate?.toString(), trialEndDate = trialEndDate?.toString(), notes = notes,
     tags = tags.sorted(), plan = plan, createdAt = createdAt.toString(), updatedAt = updatedAt.toString(),
-    archivedAt = archivedAt?.toString(),
+    archivedAt = archivedAt?.toString(), onlineProviderId = onlineProviderId,
 )
 
 private fun RecurringEvent.toBackupDto(): EventBackupDto {
@@ -422,4 +443,5 @@ private fun Quota.toBackupDto() = QuotaBackupDto(
     used = used?.toString(), remaining = remaining?.toString(), limit = limit?.toString(),
     percentage = percentage?.toString(), unlimited = unlimited, resetEventId = resetEventId?.toString(),
     warningThresholdPercentage = warningThresholdPercentage?.toString(), updatedAt = updatedAt.toString(),
+    stableKey = stableKey, origin = origin.name, syncState = syncState.name, syncNote = syncNote,
 )

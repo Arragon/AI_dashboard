@@ -1,6 +1,8 @@
 package com.subscriptiontracker.data.database
 
 import com.subscriptiontracker.domain.model.Quota
+import com.subscriptiontracker.domain.model.QuotaOrigin
+import com.subscriptiontracker.domain.model.QuotaSyncState
 import com.subscriptiontracker.domain.model.RecurrenceRule
 import com.subscriptiontracker.domain.model.RecurrenceUnit
 import com.subscriptiontracker.domain.model.RecurringEvent
@@ -46,6 +48,7 @@ fun Subscription.toEntity(): SubscriptionEntity = SubscriptionEntity(
     createdAt = createdAt.toString(),
     updatedAt = updatedAt.toString(),
     archivedAt = archivedAt?.toString(),
+    onlineProviderId = onlineProviderId,
 )
 
 fun SubscriptionEntity.toDomain(): Subscription = Subscription(
@@ -70,6 +73,7 @@ fun SubscriptionEntity.toDomain(): Subscription = Subscription(
     createdAt = Instant.parse(createdAt),
     updatedAt = Instant.parse(updatedAt),
     archivedAt = archivedAt?.let(Instant::parse),
+    onlineProviderId = onlineProviderId,
 )
 
 fun RecurringEvent.toEntity(): RecurringEventEntity {
@@ -138,6 +142,10 @@ fun Quota.toEntity(): QuotaEntity = QuotaEntity(
     resetEventId = resetEventId?.toString(),
     warningThresholdPercentage = warningThresholdPercentage?.toString(),
     updatedAt = updatedAt.toString(),
+    stableKey = stableKey,
+    origin = origin.name,
+    syncState = syncState.name,
+    syncNote = syncNote,
 )
 
 fun QuotaEntity.toDomain(): Quota = Quota(
@@ -153,4 +161,8 @@ fun QuotaEntity.toDomain(): Quota = Quota(
     resetEventId = resetEventId?.let(UUID::fromString),
     warningThresholdPercentage = warningThresholdPercentage?.let(::BigDecimal),
     updatedAt = Instant.parse(updatedAt),
+    stableKey = stableKey,
+    origin = QuotaOrigin.valueOf(origin),
+    syncState = QuotaSyncState.valueOf(syncState),
+    syncNote = syncNote,
 )

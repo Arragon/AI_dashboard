@@ -36,10 +36,14 @@ data class Subscription(
     val createdAt: Instant,
     val updatedAt: Instant,
     val archivedAt: Instant? = null,
+    val onlineProviderId: String? = null,
 ) {
     init {
         require(name.isNotBlank()) { "Subscription name cannot be blank" }
         require(category.isNotBlank()) { "Subscription category cannot be blank" }
+        require(onlineProviderId == null || onlineProviderId.isNotBlank()) {
+            "Online provider id cannot be blank"
+        }
         require(price >= BigDecimal.ZERO) { "Subscription price cannot be negative" }
         require((billingInterval == null) == (billingIntervalCount == null)) {
             "Billing interval and count must either both be set or both be absent"

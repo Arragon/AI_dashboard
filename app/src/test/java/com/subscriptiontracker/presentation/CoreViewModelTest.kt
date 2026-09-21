@@ -80,7 +80,20 @@ class CoreViewModelTest {
         model.deleteSubscription(created.id)
         advanceUntilIdle()
         assertEquals(emptyList<Subscription>(), model.state.value.subscriptions)
-        assertEquals(5, reconciliations)
+        assertEquals(6, reconciliations)
+    }
+
+    @Test
+    fun `creating a subscription synthesizes billing expiration and trial events`() = runTest(dispatcher) {
+        advanceUntilIdle()
+        model.saveSubscription(
+            null,
+            validInput(name = "Cloud").copy(expirationDate = "2025-06-01", trialEndDate = "2025-01-12"),
+        )
+        advanceUntilIdle()
+        val types = model.state.value.events.map { it.type }.toSet()
+        assertEquals(setOf(com.subscriptiontracker.domain.model.RecurringEventType.BILLING, com.subscriptiontracker.domain.model.RecurringEventType.EXPIRATION, com.subscriptiontracker.domain.model.RecurringEventType.TRIAL_END), types)
+        assertEquals(1, model.state.value.attention.count { it.kind == AttentionKind.TRIAL })
     }
 
     @Test

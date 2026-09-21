@@ -69,7 +69,10 @@ class RoomPersistenceTest {
         subscriptions.create(subscription)
 
         assertEquals(subscription, subscriptions.getById(subscription.id))
-        assertEquals(listOf(subscription), subscriptions.observeAll().first())
+        val linked = subscription.copy(onlineProviderId = "openrouter")
+        subscriptions.save(linked)
+        assertEquals("openrouter", subscriptions.getById(subscription.id)?.onlineProviderId)
+        assertEquals(listOf(linked), subscriptions.observeAll().first())
         assertEquals("1234567890.0012300", subscriptions.getById(subscription.id)?.price?.toString())
     }
 
